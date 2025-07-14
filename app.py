@@ -1,6 +1,7 @@
 import streamlit as st
 import pickle
 import numpy as np
+import pandas as pd
 
 # Load the model and dataset
 pipe = pickle.load(open('pipe.pkl', 'rb'))
@@ -32,7 +33,8 @@ screen_size = st.slider('Screen Size (inches)', 10.0, 18.0, 13.0)
 # Resolution
 resolution = st.selectbox(
     'Screen Resolution',
-    ['1920x1080', '1366x768', '1600x900', '3840x2160', '3200x1800', '2880x1800', '2560x1600', '2560x1440', '2304x1440']
+    ['1920x1080', '1366x768', '1600x900', '3840x2160', '3200x1800',
+     '2880x1800', '2560x1600', '2560x1440', '2304x1440']
 )
 
 # CPU
@@ -50,20 +52,33 @@ gpu = st.selectbox('GPU Brand', df['Gpu brand'].unique())
 # OS
 os = st.selectbox('Operating System', df['os'].unique())
 
+# Prediction
 if st.button('Predict Price'):
     # Convert to binary
-    touchscreen = 1 if touchscreen == 'Yes' else 0
-    ips = 1 if ips == 'Yes' else 0
+    touchscreen_binary = 1 if touchscreen == 'Yes' else 0
+    ips_binary = 1 if ips == 'Yes' else 0
 
     # Calculate PPI
     X_res = int(resolution.split('x')[0])
     Y_res = int(resolution.split('x')[1])
     ppi = ((X_res ** 2 + Y_res ** 2) ** 0.5) / screen_size
 
-    # Build query array
-    query = np.array([company, laptop_type, ram, weight, touchscreen, ips, ppi, cpu, hdd, ssd, gpu, os])
-    query = query.reshape(1, 12)
+    # Create dataframe
+    query = pd.DataFrame([{
+        'Company': company,
+        'TypeName': laptop_type,
+        'Ram': ram,
+        'Weight': weight,
+        'Touchscreen': touchscreen_binary,
+        'Ips': ips_binary,
+        'ppi': ppi,  # fixed here
+        'Cpu brand': cpu,
+        'HDD': hdd,
+        'SSD': ssd,
+        'Gpu brand': gpu,
+        'os': os
+    }])
 
-    # Predict
+    # Predict and show result
     predicted_price = int(np.exp(pipe.predict(query)[0]))
     st.success(f"💰 The predicted price of this configuration is ₹ {predicted_price}")
